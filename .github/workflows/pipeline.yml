@@ -1,0 +1,72 @@
+name: MLOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  data-preparation:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: pip install -r requirements.txt
+
+    - name: Validate Dataset
+      run: python src/data_validation.py
+
+    - name: Clean, Split, and Save Data
+      run: python src/data_preparation.py
+
+    - name: Upload Train/Test Splits as Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: data-splits
+        path: artifacts/
+        retention-days: 1
+
+  model-training:
+    needs: data-preparation
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Required for pushing back to the repo
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: pip install -r requirements.txt
+
+    - name: Download Train/Test Splits Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: data-splits
+        path: artifacts/
+
+    - name: Tune Parameters and Train Model
+      run: python src/model_training.py
+
+    - name: Commit and Push Updated Model
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.io"
+        git add artifacts/model.pkl
+        # Add [skip ci] to prevent infinite workflow loops
+        git diff --staged --quiet || git commit -m "Automated MLOps: Update model.pkl [skip ci]"
+        git push
