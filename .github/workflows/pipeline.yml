@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# Give permissions for the bot to push to the repo
+permissions:
+  contents: write
+
 jobs:
   # JOB 1: Data Preparation
   data-preparation:
@@ -29,7 +33,6 @@ jobs:
     - name: Run Data Preparation
       run: python src/data_preparation.py
 
-    # This fulfills the "workflow artifact" requirement
     - name: Upload Train/Test Splits as Artifact
       uses: actions/upload-artifact@v4
       with:
@@ -37,13 +40,15 @@ jobs:
         path: artifacts/
         retention-days: 1
 
-  # JOB 2: Model Training
+  # JOB 2: Model Training & Commit
   model-training:
-    needs: data-preparation   # This ensures it runs AFTER Job 1
+    needs: data-preparation
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0   # Required for pushing code back
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -54,12 +59,22 @@ jobs:
     - name: Install Dependencies
       run: pip install -r requirements.txt
 
-    # Retrieves the artifact saved by Job 1
     - name: Download Train/Test Splits Artifact
       uses: actions/download-artifact@v4
       with:
         name: data-splits
         path: artifacts/
 
-    - name: Run Model Training
+    - name: Run Model Training & Experimentation
       run: python src/model_training.py
+
+    - name: Commit and Push the Model to Repository
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.io"
+        git add artifacts/model.pkl
+        # We use [skip ci] so this automated commit doesn't trigger another pipeline run infinitely
+        git diff --staged --quiet || git commit -m "Automated MLOps: Save best XGBoost model [skip ci]"
+        git push
