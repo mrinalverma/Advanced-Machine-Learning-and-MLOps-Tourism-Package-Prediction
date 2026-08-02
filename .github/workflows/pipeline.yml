@@ -1,80 +1,79 @@
-name: MLOps Pipeline
+name: Tourism Project Pipeline
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main  # Automatically triggers on push to the main branch
+  workflow_dispatch:  # lets you click "Run workflow" in the Actions tab
 
-# Give permissions for the bot to push the model back to the repo
 permissions:
   contents: write
 
 jobs:
-  # JOB 1: Data Preparation
-  data-preparation:
+
+  register-dataset:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Dependencies
+        run: <add_code_here>
+      - name: Register Dataset
+        run: <add_code_here>
+      - name: Upload Registered Dataset
+        uses: actions/upload-artifact@v4
+        with:
+          name: registered-data
+          path: tourism_project/data/tourism.csv
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        cache: 'pip'
-
-    - name: Install Dependencies
-      run: pip install -r requirements.txt
-
-    - name: Run Data Validation
-      run: python src/data_validation.py
-
-    - name: Run Data Preparation
-      run: python src/data_preparation.py
-
-    - name: Upload Train/Test Splits as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: data-splits
-        path: artifacts/
-        retention-days: 1
-
-  # JOB 2: Model Training & Commit
-  model-training:
-    needs: data-preparation
+  data-prep:
+    needs: register-dataset
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0   
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Dependencies
+        run: <add_code_here>
+      - name: Run Data Preparation
+        run: <add_code_here>
+      - name: Upload Train Test Splits
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-splits
+          path: |
+            Xtrain.csv
+            Xtest.csv
+            ytrain.csv
+            ytest.csv
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        cache: 'pip'
-
-    - name: Install Dependencies
-      run: pip install -r requirements.txt
-
-    - name: Download Train/Test Splits Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: data-splits
-        path: artifacts/
-
-    - name: Run Model Training & Experimentation
-      run: python src/model_training.py
-
-    - name: Commit and Push the Model to Repository
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.io"
-        git add artifacts/model.pkl
-        # Use [skip ci] so this automated commit doesn't trigger another pipeline run infinitely
-        git diff --staged --quiet || git commit -m "Automated MLOps: Save best XGBoost model [skip ci]"
-        git push
+  model-traning:
+    needs: data-prep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Dependencies
+        run: <add_code_here>
+      - name: Download Train Test Splits
+        uses: actions/download-artifact@v4
+        with:
+          name: data-splits
+      - name: Start MLflow Server
+        run: |
+          nohup mlflow ui --host 0.0.0.0 --port 5000 &  # Run MLflow UI in the background
+          sleep 5  # Wait for a moment to let the server starts
+      - name: Model Building
+        run: <add_code_here>
+      - name: Commit Trained Model
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add <add_code_here>   # path to the saved model file
+          git commit -m "Add trained model [skip ci]" || echo "No changes to commit"
+          git push
