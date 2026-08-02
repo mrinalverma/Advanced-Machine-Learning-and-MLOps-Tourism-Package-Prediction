@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ "main" ]
 
-# Give permissions for the bot to push to the repo
+# Give permissions for the bot to push the model back to the repo
 permissions:
   contents: write
 
@@ -48,7 +48,7 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0   # Required for pushing code back
+        fetch-depth: 0   
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -75,6 +75,6 @@ jobs:
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.io"
         git add artifacts/model.pkl
-        # We use [skip ci] so this automated commit doesn't trigger another pipeline run infinitely
+        # Use [skip ci] so this automated commit doesn't trigger another pipeline run infinitely
         git diff --staged --quiet || git commit -m "Automated MLOps: Save best XGBoost model [skip ci]"
         git push
