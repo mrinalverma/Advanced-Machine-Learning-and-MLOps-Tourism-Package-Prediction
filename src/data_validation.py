@@ -10,7 +10,7 @@ EXPECTED_COLUMNS = [
     'NumberOfFollowups', 'DurationOfPitch'
 ]
 
-def validate_data(file_path="data/travel.csv"):
+def validate_data(file_path="data/tourism.csv"):
     # 1. Create the data folder automatically if it doesn't exist
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     

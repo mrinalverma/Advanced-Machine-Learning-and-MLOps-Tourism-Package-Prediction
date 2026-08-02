@@ -7,7 +7,7 @@ def prepare_data():
     os.makedirs("artifacts", exist_ok=True)
     
     # 1. Load the dataset directly from the repository data folder
-    file_path = "data/travel.csv"
+    file_path = "data/tourism.csv"
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"❌ Dataset not found at {file_path}. Please ensure it is uploaded.")
         
