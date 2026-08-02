@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-import gdown
 
 EXPECTED_COLUMNS = [
     'CustomerID', 'ProdTaken', 'Age', 'TypeofContact', 'CityTier', 'Occupation',
@@ -11,25 +10,15 @@ EXPECTED_COLUMNS = [
 ]
 
 def validate_data(file_path="data/tourism.csv"):
-    # 1. Create the data folder automatically if it doesn't exist
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    
-    # 2. Download the CSV from your Google Drive link if it's not already in the folder
+    # Check if file exists in the repo
     if not os.path.exists(file_path):
-        print(f"⬇️ Downloading dataset to {file_path}...")
-        file_id = '1oljnFCQQhG_5hexZkXn7xNDqDfNiyCGf'
-        url = f'https://drive.google.com/uc?id={file_id}'
-        gdown.download(url, file_path, quiet=False)
+        raise FileNotFoundError(f"❌ Dataset not found at {file_path}. Please ensure tourism.csv is in the data folder.")
     
-    # Safety check
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"❌ Failed to download. Dataset not found at {file_path}")
-    
-    # 3. Load Data
+    # Load Data
     df = pd.read_csv(file_path)
     print(f"\n✅ Dataset loaded successfully. Shape: {df.shape}")
     
-    # 4. Check for missing columns
+    # Check for missing columns
     missing_cols = [col for col in EXPECTED_COLUMNS if col not in df.columns]
     if missing_cols:
         raise ValueError(f"❌ Missing expected columns: {missing_cols}")
